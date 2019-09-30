@@ -42,7 +42,7 @@ namespace Dynamics365.Api.Client.Tests
         {
             var q = Query
                 .From<LeadEntity>()
-                .AddFilter(l => l.City)
+                .Where(l => l.City)
                     .Equal("Berlin");
             var queryString = qb.ToQueryString(q);
 
@@ -54,11 +54,24 @@ namespace Dynamics365.Api.Client.Tests
         {
             var q = Query
                 .From<LeadEntity>()
-                .AddFilter(l => l.BudgetAmount)
+                .Where(l => l.BudgetAmount)
                     .GreaterThan(100000.0m);
             var queryString = qb.ToQueryString(q);
 
             queryString.Should().BeEquivalentTo("$filter=budgetamount gt 100000.0");
+        }
+
+        [Test]
+        public void Should_Create_2_Filters_With_And()
+        {
+            var q = Query
+                .From<LeadEntity>()
+                .Where(l => l.BudgetAmount).GreaterThan(100000.0m)
+                .And(l => l.City).Equal("Berlin")
+                ;
+            var queryString = qb.ToQueryString(q);
+
+            queryString.Should().BeEquivalentTo("$filter=(budgetamount gt 100000.0 and address1_city eq 'Berlin')");
         }
     }
 }

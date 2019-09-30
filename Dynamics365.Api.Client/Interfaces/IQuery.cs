@@ -10,17 +10,17 @@ namespace Dynamics365.Api.Client.Interfaces
     public interface IFilterQueryWithoutCondition<TEntity> : IQuery
         where TEntity : BaseCrmEntity, new()
     {
-        IExecutableQuery<TEntity> Equal(object value);
-
-        IExecutableQuery<TEntity> NotEqual(object value);
-
-        IExecutableQuery<TEntity> GreaterThan(object value);
-
-        IExecutableQuery<TEntity> LessThan(object value);
-
-        IExecutableQuery<TEntity> GreaterThanOrEqual(object value);
-
-        IExecutableQuery<TEntity> LessThanOrEqual(object value);
+        IExecutableQueryWithFilter<TEntity> Equal(object value);
+        
+        IExecutableQueryWithFilter<TEntity> NotEqual(object value);
+        
+        IExecutableQueryWithFilter<TEntity> GreaterThan(object value);
+        
+        IExecutableQueryWithFilter<TEntity> LessThan(object value);
+        
+        IExecutableQueryWithFilter<TEntity> GreaterThanOrEqual(object value);
+        
+        IExecutableQueryWithFilter<TEntity> LessThanOrEqual(object value);
     }
 
     public interface IExecutableQuery<TEntity> : IQuery
@@ -30,14 +30,20 @@ namespace Dynamics365.Api.Client.Interfaces
 
         List<string> Fields { get; }
 
-        ComparisonFilter Condition { get; }
-
         IFilter Filter { get; }
 
         int? Limit { get; }
 
         IExecutableQuery<TEntity> Select(Expression<Func<TEntity, object>> propertyExpression);
 
-        IFilterQueryWithoutCondition<TEntity> AddFilter<T>(Expression<Func<TEntity, T>> propertyExpression);
+        IFilterQueryWithoutCondition<TEntity> Where<T>(Expression<Func<TEntity, T>> propertyExpression);
+    }
+
+    public interface IExecutableQueryWithFilter<TEntity> : IExecutableQuery<TEntity>
+        where TEntity : BaseCrmEntity, new()
+    {
+        IFilterQueryWithoutCondition<TEntity> And<T>(Expression<Func<TEntity, T>> propertyExpression);
+
+        IFilterQueryWithoutCondition<TEntity> Or<T>(Expression<Func<TEntity, T>> propertyExpression);
     }
 }

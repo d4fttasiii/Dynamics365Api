@@ -20,7 +20,7 @@ namespace Dynamics365.Api.Client.Services
                 queryStringBuilder.Append(string.Join(",", query.Fields));
             }
 
-            if (query.Condition != null)
+            if (query.Filter != null)
             {
                 if (query.Fields.Any())
                 {
@@ -28,12 +28,12 @@ namespace Dynamics365.Api.Client.Services
                 }
 
                 queryStringBuilder.Append("$filter=");
-                queryStringBuilder.Append(ToFilterString(query.Condition));
+                queryStringBuilder.Append(ParseFilter(query.Filter));
             }
 
             if (query.Limit.HasValue)
             {
-                if (query.Fields.Any() || query.Condition != null)
+                if (query.Fields.Any() || query.Filter != null)
                 {
                     queryStringBuilder.Append("&");
                 }
@@ -44,42 +44,62 @@ namespace Dynamics365.Api.Client.Services
             return queryStringBuilder.ToString();
         }
 
-        private string ToFilterString(ComparisonFilter filter)
+        private string ParseFilter(IFilter filter)
+        {
+            switch (filter)
+            {
+                case ComparisonFilter comparisonFilter:
+                    return ParseComparisonFilter(comparisonFilter);
+
+                case LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.Not:
+                    return $"not {ParseFilter(logicalFilter.Left)}";
+
+                case LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.And:
+                    return $"({ParseFilter(logicalFilter.Left)} and {ParseFilter(logicalFilter.Right)})";
+
+                case LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.Or:
+                    return $"({ParseFilter(logicalFilter.Left)} or {ParseFilter(logicalFilter.Right)})";
+            }
+
+            throw new ArgumentException($"{filter.GetType().Name} filter type is not supported!");
+        }
+
+        private string ParseComparisonFilter(ComparisonFilter filter)
         {
             switch (filter.Operation)
             {
                 case FilterOperations.Equal:
-                    return $"{filter.Field} eq {ToValueString(filter.Value)}";
+                    return $"{filter.Field} eq {ParseValue(filter.Value)}";
 
                 case FilterOperations.NotEqual:
-                    return $"{filter.Field} ne {ToValueString(filter.Value)}";
+                    return $"{filter.Field} ne {ParseValue(filter.Value)}";
 
                 case FilterOperations.Greater:
-                    return $"{filter.Field} gt {ToValueString(filter.Value)}";
+                    return $"{filter.Field} gt {ParseValue(filter.Value)}";
 
                 case FilterOperations.GreaterThanOrEqual:
-                    return $"{filter.Field} ge {ToValueString(filter.Value)}";
+                    return $"{filter.Field} ge {ParseValue(filter.Value)}";
 
                 case FilterOperations.Less:
-                    return $"{filter.Field} lt {ToValueString(filter.Value)}";
+                    return $"{filter.Field} lt {ParseValue(filter.Value)}";
 
                 case FilterOperations.LessThanOrEqual:
-                    return $"{filter.Field} le {ToValueString(filter.Value)}";
+                    return $"{filter.Field} le {ParseValue(filter.Value)}";
 
                 case FilterOperations.Contains:
-                    return $"contains({filter.Field}, {ToValueString(filter.Value)})";
+                    return $"contains({filter.Field}, {ParseValue(filter.Value)})";
 
                 case FilterOperations.EndsWith:
-                    return $"endswith({filter.Field}, {ToValueString(filter.Value)})";
+                    return $"endswith({filter.Field}, {ParseValue(filter.Value)})";
 
                 case FilterOperations.StartsWith:
-                    return $"startswith({filter.Field}, {ToValueString(filter.Value)})";
+                    return $"startswith({filter.Field}, {ParseValue(filter.Value)})";
             }
 
             throw new ArgumentException($"{filter.Operation} operation is not supported!");
         }
 
-        private static string ToValueString(object value)
+        private static string ParseValue(object value)
         {
             switch (value)
             {

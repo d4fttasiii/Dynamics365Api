@@ -13,7 +13,8 @@ namespace Dynamics365.Api.Client.Queries
     public class GetQuery<TEntity> :
         Query,
         IFilterQueryWithoutCondition<TEntity>,
-        IExecutableQuery<TEntity>
+        IExecutableQuery<TEntity>,
+        IExecutableQueryWithFilter<TEntity>
         where TEntity : BaseCrmEntity, new()
     {
         private Dictionary<string, BaseCrmFieldAttribute> _propertyCrmAttributeDict;
@@ -49,7 +50,7 @@ namespace Dynamics365.Api.Client.Queries
             return this;
         }
 
-        public IFilterQueryWithoutCondition<TEntity> AddFilter<T>(Expression<Func<TEntity, T>> propertyExpression)
+        public IFilterQueryWithoutCondition<TEntity> Where<T>(Expression<Func<TEntity, T>> propertyExpression)
         {
             _tempField = GetPropertyAttiributeFieldName(propertyExpression).FirstOrDefault();
             return this;
@@ -62,76 +63,101 @@ namespace Dynamics365.Api.Client.Queries
             return this;
         }
 
-        public IExecutableQuery<TEntity> Equal(object value)
+        public IExecutableQueryWithFilter<TEntity> Equal(object value)
         {
-            Condition = new ComparisonFilter
-            {
-                Field = _tempField,
-                Operation = FilterOperations.Equal,
-                Value = value
-            };
+            ToFilter(FilterOperations.Equal, value);
 
             return this;
         }
 
-        public IExecutableQuery<TEntity> NotEqual(object value)
+        public IExecutableQueryWithFilter<TEntity> NotEqual(object value)
         {
-            Condition = new ComparisonFilter
-            {
-                Field = _tempField,
-                Operation = FilterOperations.NotEqual,
-                Value = value
-            };
+            ToFilter(FilterOperations.NotEqual, value);
 
             return this;
         }
 
-        public IExecutableQuery<TEntity> GreaterThan(object value)
+        public IExecutableQueryWithFilter<TEntity> GreaterThan(object value)
         {
-            Condition = new ComparisonFilter
-            {
-                Field = _tempField,
-                Operation = FilterOperations.Greater,
-                Value = value
-            };
+            ToFilter(FilterOperations.Greater, value);
 
             return this;
         }
 
-        public IExecutableQuery<TEntity> LessThan(object value)
+        public IExecutableQueryWithFilter<TEntity> LessThan(object value)
         {
-            Condition = new ComparisonFilter
-            {
-                Field = _tempField,
-                Operation = FilterOperations.Less,
-                Value = value
-            };
+            ToFilter(FilterOperations.Less, value);
 
             return this;
         }
 
-        public IExecutableQuery<TEntity> GreaterThanOrEqual(object value)
+        public IExecutableQueryWithFilter<TEntity> GreaterThanOrEqual(object value)
         {
-            Condition = new ComparisonFilter
-            {
-                Field = _tempField,
-                Operation = FilterOperations.GreaterThanOrEqual,
-                Value = value
-            };
+            ToFilter(FilterOperations.GreaterThanOrEqual, value);
 
             return this;
         }
 
-        public IExecutableQuery<TEntity> LessThanOrEqual(object value)
+        public IExecutableQueryWithFilter<TEntity> LessThanOrEqual(object value)
         {
-            Condition = new ComparisonFilter
-            {
-                Field = _tempField,
-                Operation = FilterOperations.LessThanOrEqual,
-                Value = value
-            };
+            ToFilter(FilterOperations.LessThanOrEqual, value);
 
             return this;
+        }
+
+        public IFilterQueryWithoutCondition<TEntity> And<T>(Expression<Func<TEntity, T>> propertyExpression)
+        {
+            _tempField = GetPropertyAttiributeFieldName(propertyExpression).FirstOrDefault();
+            AddLogicalFilter(LogicalOperations.And);
+
+            return this;
+        }
+
+        public IFilterQueryWithoutCondition<TEntity> Or<T>(Expression<Func<TEntity, T>> propertyExpression)
+        {
+            _tempField = GetPropertyAttiributeFieldName(propertyExpression).FirstOrDefault();
+            AddLogicalFilter(LogicalOperations.Or);
+
+            return this;
+        }
+
+        private void AddLogicalFilter(LogicalOperations logicalOperations)
+        {
+            Filter = new LogicalFilter
+            {
+                Left = new ComparisonFilter
+                {
+                    Field = Condition.Field,
+                    Operation = Condition.Operation,
+                    Value = Condition.Value
+                },
+                Operator = logicalOperations
+            };
+        }
+
+        private void ToFilter(FilterOperations op, object value)
+        {
+            if (Condition == null)
+            {
+                Condition = new ComparisonFilter
+                {
+                    Field = _tempField,
+                    Operation = op,
+                    Value = value
+                };
+                Filter = Condition;
+            }
+            else if (Filter is LogicalFilter lf)
+            {
+                lf.Right = new ComparisonFilter
+                {
+                    Field = _tempField,
+                    Operation = op,
+                    Value = value
+                };
+
+                Condition = null;
+            }
         }
 
         private IEnumerable<string> GetPropertyAttiributeFieldName(Expression expression)
@@ -140,9 +166,11 @@ namespace Dynamics365.Api.Client.Queries
             {
                 case MemberExpression memExpression:
                     var attribute = _propertyCrmAttributeDict[memExpression.Member.Name];
+                    var fieldName = attribute.Type == FieldTypes.Reference ? $"_{attribute.Name}_value" : attribute.Name;
+
                     return new List<string>
                     {
-                        attribute.Name
+                        fieldName
                     };
 
                 case LambdaExpression lambaExpression:
@@ -161,11 +189,6 @@ namespace Dynamics365.Api.Client.Queries
                 default:
                     return new List<string>();
             }
-        }
-
-        IExecutableQuery<TEntity> IExecutableQuery<TEntity>.Select(Expression<Func<TEntity, object>> propertyExpression)
-        {
-            throw new NotImplementedException();
         }
     }
 }
