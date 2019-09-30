@@ -32,10 +32,12 @@ namespace Dynamics365.Api.Client.Interfaces
 
         ComparisonFilter Condition { get; }
 
+        IFilter Filter { get; }
+
         int? Limit { get; }
 
         IExecutableQuery<TEntity> Select(Expression<Func<TEntity, object>> propertyExpression);
 
-        IFilterQueryWithoutCondition<TEntity> Filter<T>(Expression<Func<TEntity, T>> propertyExpression);
+        IFilterQueryWithoutCondition<TEntity> AddFilter<T>(Expression<Func<TEntity, T>> propertyExpression);
     }
 }

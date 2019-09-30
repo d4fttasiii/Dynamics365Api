@@ -19,10 +19,11 @@ namespace Dynamics365.Api.Client.Queries
         private Dictionary<string, BaseCrmFieldAttribute> _propertyCrmAttributeDict;
         private string _tempField;
 
-        public string PluralName { get; set; }
-        public List<string> Fields { get; set; } = new List<string>();
-        public ComparisonFilter Condition { get; set; }
-        public int? Limit { get; set; }
+        public string PluralName { get; private set; }
+        public List<string> Fields { get; } = new List<string>();
+        public ComparisonFilter Condition { get; private set; }
+        public int? Limit { get; private set; }
+        public IFilter Filter { get; private set; }
 
         internal GetQuery()
         {
@@ -42,12 +43,13 @@ namespace Dynamics365.Api.Client.Queries
 
         public IExecutableQuery<TEntity> Select(Expression<Func<TEntity, object>> propertyExpression)
         {
-            Fields = new List<string>(GetPropertyAttiributeFieldName(propertyExpression));
+            Fields.Clear();
+            Fields.AddRange(new List<string>(GetPropertyAttiributeFieldName(propertyExpression)));
 
             return this;
         }
 
-        public IFilterQueryWithoutCondition<TEntity> Filter<T>(Expression<Func<TEntity, T>> propertyExpression)
+        public IFilterQueryWithoutCondition<TEntity> AddFilter<T>(Expression<Func<TEntity, T>> propertyExpression)
         {
             _tempField = GetPropertyAttiributeFieldName(propertyExpression).FirstOrDefault();
             return this;

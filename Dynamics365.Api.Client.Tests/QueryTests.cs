@@ -42,7 +42,7 @@ namespace Dynamics365.Api.Client.Tests
         {
             var q = Query
                 .From<LeadEntity>()
-                .Filter(l => l.City)
+                .AddFilter(l => l.City)
                     .Equal("Berlin");
             var queryString = qb.ToQueryString(q);
 
@@ -54,7 +54,7 @@ namespace Dynamics365.Api.Client.Tests
         {
             var q = Query
                 .From<LeadEntity>()
-                .Filter(l => l.BudgetAmount)
+                .AddFilter(l => l.BudgetAmount)
                     .GreaterThan(100000.0m);
             var queryString = qb.ToQueryString(q);
 
