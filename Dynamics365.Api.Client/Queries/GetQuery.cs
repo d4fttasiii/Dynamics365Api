@@ -10,9 +10,9 @@ using System.Reflection;
 
 namespace Dynamics365.Api.Client.Queries
 {
-    public class GetQuery<TEntity> :
+    public class GetQuery<TEntity, TValue> :
         Query,
-        IFilterQueryWithoutCondition<TEntity>,
+        IFilterQueryWithoutCondition<TEntity, TValue>,
         IExecutableQuery<TEntity>,
         IExecutableQueryWithFilter<TEntity>
         where TEntity : BaseCrmEntity, new()
@@ -21,9 +21,8 @@ namespace Dynamics365.Api.Client.Queries
         private string _tempField;
 
         public string PluralName { get; private set; }
-        public List<string> Fields { get; } = new List<string>();
-        public ComparisonFilter Condition { get; private set; }
-        public int? Limit { get; private set; }
+        public List<string> Fields { get; private set; } = new List<string>();
+        public int? Top { get; private set; }
         public IFilter Filter { get; private set; }
 
         internal GetQuery()
@@ -37,11 +36,6 @@ namespace Dynamics365.Api.Client.Queries
             }
         }
 
-        public static IExecutableQuery<TEntity> From()
-        {
-            return new GetQuery<TEntity>();
-        }
-
         public IExecutableQuery<TEntity> Select(Expression<Func<TEntity, object>> propertyExpression)
         {
             Fields.Clear();
@@ -50,86 +44,89 @@ namespace Dynamics365.Api.Client.Queries
             return this;
         }
 
-        public IFilterQueryWithoutCondition<TEntity> Where<T>(Expression<Func<TEntity, T>> propertyExpression)
+        public IFilterQueryWithoutCondition<TEntity, TValueNew> Where<TValueNew>(Expression<Func<TEntity, TValueNew>> propertyExpression)
         {
             _tempField = GetPropertyAttiributeFieldName(propertyExpression).FirstOrDefault();
-            return this;
+
+            return DeepCopy<TValueNew>();
         }
 
-        public IExecutableQuery<TEntity> Top(int top)
+        public IExecutableQuery<TEntity> Take(int take)
         {
-            Limit = top;
+            Top = take;
 
             return this;
         }
 
-        public IExecutableQueryWithFilter<TEntity> Equal(object value)
+        public IExecutableQueryWithFilter<TEntity> EqualsTo(TValue value)
         {
             ToFilter(FilterOperations.Equal, value);
 
             return this;
         }
 
-        public IExecutableQueryWithFilter<TEntity> NotEqual(object value)
+        public IExecutableQueryWithFilter<TEntity> DoesNotEqualTo(TValue value)
         {
             ToFilter(FilterOperations.NotEqual, value);
 
             return this;
         }
 
-        public IExecutableQueryWithFilter<TEntity> GreaterThan(object value)
+        public IExecutableQueryWithFilter<TEntity> IsGreaterThan(TValue value)
         {
             ToFilter(FilterOperations.Greater, value);
 
             return this;
         }
 
-        public IExecutableQueryWithFilter<TEntity> LessThan(object value)
+        public IExecutableQueryWithFilter<TEntity> IsLessThan(TValue value)
         {
             ToFilter(FilterOperations.Less, value);
 
             return this;
         }
 
-        public IExecutableQueryWithFilter<TEntity> GreaterThanOrEqual(object value)
+        public IExecutableQueryWithFilter<TEntity> IsGreaterThanOrEqual(TValue value)
         {
             ToFilter(FilterOperations.GreaterThanOrEqual, value);
 
             return this;
         }
 
-        public IExecutableQueryWithFilter<TEntity> LessThanOrEqual(object value)
+        public IExecutableQueryWithFilter<TEntity> IsLessThanOrEqual(TValue value)
         {
             ToFilter(FilterOperations.LessThanOrEqual, value);
 
             return this;
         }
 
-        public IFilterQueryWithoutCondition<TEntity> And<T>(Expression<Func<TEntity, T>> propertyExpression)
+        public IFilterQueryWithoutCondition<TEntity, TValueNew> And<TValueNew>(Expression<Func<TEntity, TValueNew>> propertyExpression)
         {
             _tempField = GetPropertyAttiributeFieldName(propertyExpression).FirstOrDefault();
             AddLogicalFilter(LogicalOperations.And);
 
-            return this;
+            return DeepCopy<TValueNew>();
         }
 
-        public IFilterQueryWithoutCondition<TEntity> Or<T>(Expression<Func<TEntity, T>> propertyExpression)
+        public IFilterQueryWithoutCondition<TEntity, TValueNew> Or<TValueNew>(Expression<Func<TEntity, TValueNew>> propertyExpression)
         {
             _tempField = GetPropertyAttiributeFieldName(propertyExpression).FirstOrDefault();
             AddLogicalFilter(LogicalOperations.Or);
 
-            return this;
+            return DeepCopy<TValueNew>();
         }
 
         private void AddLogicalFilter(LogicalOperations logicalOperations)
         {
+            var previousFilter = Filter as ComparisonFilter;
+
             Filter = new LogicalFilter
             {
                 Left = new ComparisonFilter
                 {
-                    Field = Condition.Field,
-                    Operation = Condition.Operation,
-                    Value = Condition.Value
+                    Field = previousFilter.Field,
+                    Operation = previousFilter.Operation,
+                    Value = previousFilter.Value
                 },
                 Operator = logicalOperations
             };
@@ -137,15 +134,14 @@ namespace Dynamics365.Api.Client.Queries
 
         private void ToFilter(FilterOperations op, object value)
         {
-            if (Condition == null)
+            if (Filter == null)
             {
-                Condition = new ComparisonFilter
+                Filter = new ComparisonFilter
                 {
                     Field = _tempField,
                     Operation = op,
                     Value = value
                 };
-                Filter = Condition;
             }
             else if (Filter is LogicalFilter lf)
             {
@@ -156,7 +152,7 @@ namespace Dynamics365.Api.Client.Queries
                     Value = value
                 };
 
-                Condition = null;
+                _tempField = null;
             }
         }
 
@@ -189,6 +185,14 @@ namespace Dynamics365.Api.Client.Queries
                 default:
                     return new List<string>();
             }
+        }
+
+        private IFilterQueryWithoutCondition<TEntity, TValueNew> DeepCopy<TValueNew>()
+        {
+            var newQ = new GetQuery<TEntity, TValueNew> { Filter = this.Filter, Fields = this.Fields, Top = this.Top };
+            newQ._tempField = this._tempField;
+
+            return newQ;
         }
     }
 }

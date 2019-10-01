@@ -31,14 +31,14 @@ namespace Dynamics365.Api.Client.Services
                 queryStringBuilder.Append(ParseFilter(query.Filter));
             }
 
-            if (query.Limit.HasValue)
+            if (query.Top.HasValue)
             {
                 if (query.Fields.Any() || query.Filter != null)
                 {
                     queryStringBuilder.Append("&");
                 }
 
-                queryStringBuilder.Append($"$top={query.Limit}");
+                queryStringBuilder.Append($"$top={query.Top}");
             }
 
             return queryStringBuilder.ToString();
@@ -109,8 +109,8 @@ namespace Dynamics365.Api.Client.Services
                 case string str:
                     return $"'{str}'";
 
-                case Reference er:
-                    return $"'{er.Id}'";
+                case BaseCrmEntity entity:
+                    return $"'{entity.Id}'";
 
                 //case ICollection collection:
                 //    return $"'({string.Join("," collection)})'";

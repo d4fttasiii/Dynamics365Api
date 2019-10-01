@@ -1,5 +1,4 @@
-﻿using Dynamics365.Api.Client.Types;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -7,20 +6,20 @@ namespace Dynamics365.Api.Client.Interfaces
 {
     public interface IQuery { }
 
-    public interface IFilterQueryWithoutCondition<TEntity> : IQuery
+    public interface IFilterQueryWithoutCondition<TEntity, TValue> : IQuery
         where TEntity : BaseCrmEntity, new()
     {
-        IExecutableQueryWithFilter<TEntity> Equal(object value);
+        IExecutableQueryWithFilter<TEntity> EqualsTo(TValue value);
         
-        IExecutableQueryWithFilter<TEntity> NotEqual(object value);
+        IExecutableQueryWithFilter<TEntity> DoesNotEqualTo(TValue value);
         
-        IExecutableQueryWithFilter<TEntity> GreaterThan(object value);
+        IExecutableQueryWithFilter<TEntity> IsGreaterThan(TValue value);
         
-        IExecutableQueryWithFilter<TEntity> LessThan(object value);
+        IExecutableQueryWithFilter<TEntity> IsLessThan(TValue value);
         
-        IExecutableQueryWithFilter<TEntity> GreaterThanOrEqual(object value);
+        IExecutableQueryWithFilter<TEntity> IsGreaterThanOrEqual(TValue value);
         
-        IExecutableQueryWithFilter<TEntity> LessThanOrEqual(object value);
+        IExecutableQueryWithFilter<TEntity> IsLessThanOrEqual(TValue value);
     }
 
     public interface IExecutableQuery<TEntity> : IQuery
@@ -32,18 +31,20 @@ namespace Dynamics365.Api.Client.Interfaces
 
         IFilter Filter { get; }
 
-        int? Limit { get; }
+        int? Top { get; }
 
         IExecutableQuery<TEntity> Select(Expression<Func<TEntity, object>> propertyExpression);
 
-        IFilterQueryWithoutCondition<TEntity> Where<T>(Expression<Func<TEntity, T>> propertyExpression);
+        IFilterQueryWithoutCondition<TEntity, TValue> Where<TValue>(Expression<Func<TEntity, TValue>> propertyExpression);
+
+        IExecutableQuery<TEntity> Take(int take = 50);
     }
 
     public interface IExecutableQueryWithFilter<TEntity> : IExecutableQuery<TEntity>
         where TEntity : BaseCrmEntity, new()
     {
-        IFilterQueryWithoutCondition<TEntity> And<T>(Expression<Func<TEntity, T>> propertyExpression);
+        IFilterQueryWithoutCondition<TEntity, TValue> And<TValue>(Expression<Func<TEntity, TValue>> propertyExpression);
 
-        IFilterQueryWithoutCondition<TEntity> Or<T>(Expression<Func<TEntity, T>> propertyExpression);
+        IFilterQueryWithoutCondition<TEntity, TValue> Or<TValue>(Expression<Func<TEntity, TValue>> propertyExpression);
     }
 }
