@@ -2,6 +2,7 @@
 using Dynamics365.Api.Client.Interfaces;
 using Dynamics365.Api.Client.Types;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -46,78 +47,45 @@ namespace Dynamics365.Api.Client.Services
 
         private string ParseFilter(IFilter filter)
         {
-            switch (filter)
+            return filter switch
             {
-                case ComparisonFilter comparisonFilter:
-                    return ParseComparisonFilter(comparisonFilter);
-
-                case LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.Not:
-                    return $"not {ParseFilter(logicalFilter.Left)}";
-
-                case LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.And:
-                    return $"({ParseFilter(logicalFilter.Left)} and {ParseFilter(logicalFilter.Right)})";
-
-                case LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.Or:
-                    return $"({ParseFilter(logicalFilter.Left)} or {ParseFilter(logicalFilter.Right)})";
-            }
-
-            throw new ArgumentException($"{filter.GetType().Name} filter type is not supported!");
+                ComparisonFilter comparisonFilter => ParseComparisonFilter(comparisonFilter),
+                LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.Not => $"not {ParseFilter(logicalFilter.Left)}",
+                LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.And => $"({ParseFilter(logicalFilter.Left)} and {ParseFilter(logicalFilter.Right)})",
+                LogicalFilter logicalFilter when logicalFilter.Operator == LogicalOperations.Or => $"({ParseFilter(logicalFilter.Left)} or {ParseFilter(logicalFilter.Right)})",
+                _ => throw new ArgumentException($"{filter.GetType().Name} filter type is not supported!"),
+            };
         }
 
         private string ParseComparisonFilter(ComparisonFilter filter)
         {
-            switch (filter.Operation)
+            return filter.Operation switch
             {
-                case FilterOperations.Equal:
-                    return $"{filter.Field} eq {ParseValue(filter.Value)}";
-
-                case FilterOperations.NotEqual:
-                    return $"{filter.Field} ne {ParseValue(filter.Value)}";
-
-                case FilterOperations.Greater:
-                    return $"{filter.Field} gt {ParseValue(filter.Value)}";
-
-                case FilterOperations.GreaterThanOrEqual:
-                    return $"{filter.Field} ge {ParseValue(filter.Value)}";
-
-                case FilterOperations.Less:
-                    return $"{filter.Field} lt {ParseValue(filter.Value)}";
-
-                case FilterOperations.LessThanOrEqual:
-                    return $"{filter.Field} le {ParseValue(filter.Value)}";
-
-                case FilterOperations.Contains:
-                    return $"contains({filter.Field}, {ParseValue(filter.Value)})";
-
-                case FilterOperations.EndsWith:
-                    return $"endswith({filter.Field}, {ParseValue(filter.Value)})";
-
-                case FilterOperations.StartsWith:
-                    return $"startswith({filter.Field}, {ParseValue(filter.Value)})";
-            }
-
-            throw new ArgumentException($"{filter.Operation} operation is not supported!");
+                FilterOperations.Equal => $"{filter.Field} eq {ParseValue(filter.Value)}",
+                FilterOperations.NotEqual => $"{filter.Field} ne {ParseValue(filter.Value)}",
+                FilterOperations.Greater => $"{filter.Field} gt {ParseValue(filter.Value)}",
+                FilterOperations.GreaterThanOrEqual => $"{filter.Field} ge {ParseValue(filter.Value)}",
+                FilterOperations.Less => $"{filter.Field} lt {ParseValue(filter.Value)}",
+                FilterOperations.LessThanOrEqual => $"{filter.Field} le {ParseValue(filter.Value)}",
+                FilterOperations.Contains => $"contains({filter.Field}, {ParseValue(filter.Value)})",
+                FilterOperations.EndsWith => $"endswith({filter.Field}, {ParseValue(filter.Value)})",
+                FilterOperations.StartsWith => $"startswith({filter.Field}, {ParseValue(filter.Value)})",
+                _ => throw new ArgumentException($"{filter.Operation} operation is not supported!"),
+            };
         }
 
         private static string ParseValue(object value)
         {
-            switch (value)
+            return value switch
             {
-                case DateTime dt:
-                    return $"'{dt.ToString("yyyy-MM-dd HH:mm:ss")}'";
-
-                case string str:
-                    return $"'{str}'";
-
-                case BaseCrmEntity entity:
-                    return $"'{entity.Id}'";
-
-                //case ICollection collection:
-                //    return $"'({string.Join("," collection)})'";
-
-                default:
-                    return value.ToString();
-            }
+                DateTime dt => $"'{dt.ToString("yyyy-MM-dd HH:mm:ss")}'",
+                string str => $"'{str}'",
+                BaseCrmEntity entity => $"'{entity.Id}'",
+                float fAmount => fAmount.ToString(CultureInfo.InvariantCulture),
+                double doubleAmount => doubleAmount.ToString(CultureInfo.InvariantCulture),
+                decimal decAmount => decAmount.ToString(CultureInfo.InvariantCulture),
+                _ => value.ToString(),
+            };
         }
     }
 }

@@ -67,8 +67,10 @@ namespace Dynamics365.Api.Client.Tests
         {
             var q = Query
                 .From<LeadEntity>()
-                .Where(l => l.BudgetAmount).IsGreaterThan(100000.0m)
-                .And(l => l.City).EqualsTo("Berlin")
+                .Where(l => l.BudgetAmount)
+                    .IsGreaterThan(100000.0m)
+                    .And(l => l.City)
+                    .EqualsTo("Berlin")
                 ;
             var queryString = qb.ToQueryString(q);
 
